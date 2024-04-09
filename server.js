@@ -68,14 +68,12 @@ app.get("/api/auth/protected", authenticateToken, (req, res) => {
   try {
     const { email, password, confirmPassword } = req.body;
 
-    console.log('req.body', email, password)
 
     if (password !== confirmPassword) {
       return res.status(400).json({ error: "Passwords don't match" });
     }
 
     const existingUser = await usersCollection.findOne({ email });
-    console.log('existing user', existingUser)
     if(existingUser){
       return res.status(400).json({ message: "User already exists." });
     }
@@ -83,23 +81,20 @@ app.get("/api/auth/protected", authenticateToken, (req, res) => {
     // HASH PASSWORD HERE
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    console.log('hashed password', hashedPassword)
+
     // Insert new user into the database
     const result = await usersCollection.insertOne({
       email,
       password: hashedPassword
     });
 
-    console.log('User registered successfully:', result.insertedId.toString());
     const userId = result.insertedId.toString()
-    console.log('userId', userId) 
 
     // Generate token
     const token = jwt.sign({ userId: result.insertedId.toString() }, process.env.JWT_SECRET, {
       expiresIn: "1d"
     });
 
-    console.log('token', token)
     // Set token in cookies
     res.cookie('token', token, { 
       maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day in milliseconds
@@ -122,11 +117,9 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log('req.body', email, password)
     // Find the user in the database by email
     const user = await usersCollection.findOne({ email });
 
-    console.log('user', user)
 
     // If user not found, return error
     if (!user) {
@@ -136,7 +129,6 @@ app.post("/api/auth/login", async (req, res) => {
     // Check if the password matches
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    console.log('isPasswordvalid', isPasswordValid)
     // If password is not valid, return error
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -147,7 +139,6 @@ app.post("/api/auth/login", async (req, res) => {
       expiresIn: "1d"
     });
 
-    console.log('token', token)
     // Set token in cookies
     res.cookie('token', token, { 
       maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day in milliseconds
@@ -176,7 +167,6 @@ app.post("/api/auth/login", async (req, res) => {
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-    // // Ensures that the client will close when you finish/error
     // await client.close();
   }
 }
